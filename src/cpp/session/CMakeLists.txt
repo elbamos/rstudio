@@ -430,6 +430,11 @@ if(APPLE)
    set (SESSION_SYSTEM_LIBRARIES
         ${SESSION_SYSTEM_LIBRARIES}
         ${MAC_APPKIT_LIBRARY})
+   if(EXISTS "/opt/R/arm64/")
+     set(SESSION_SYSTEM_LIBRARIES
+        ${SESSION_SYSTEM_LIBRARIES}
+        -L/opt/R/arm64/lib)
+   endif()
 endif()
 
 target_link_libraries(rsession
