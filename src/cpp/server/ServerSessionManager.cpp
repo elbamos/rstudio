@@ -231,6 +231,7 @@ Error SessionManager::launchSession(boost::asio::io_service& ioService,
                                     const http::ResponseHandler& onLaunch,
                                     const http::ErrorHandler& onError)
 {
+
    using namespace boost::posix_time;
    LOCK_MUTEX(launchesMutex_)
    {
@@ -311,6 +312,7 @@ Error SessionManager::launchAndTrackSession(
                            boost::asio::io_service&,
                            const core::r_util::SessionLaunchProfile& profile)
 {
+
    // if we are root then assume the identity of the user
    using namespace rstudio::core::system;
    std::string runAsUser = realUserIsRoot() ? profile.context.username : "";
@@ -328,6 +330,13 @@ Error SessionManager::launchAndTrackSession(
    // on macOS, we need to forward DYLD_INSERT_LIBRARIES
 #if __APPLE__
    std::string rPath = server::options().rsessionWhichR();
+
+   if (rPath.length() == 0)
+       return Error(
+               boost::system::errc::invalid_argument,
+               "Path to R Executable not found - set in /etc/rstudio/rsession.conf",
+               ErrorLocation()
+               );
    
    core::system::ProcessOptions options;
    core::system::ProcessResult result;
@@ -340,6 +349,13 @@ Error SessionManager::launchAndTrackSession(
       LOG_ERROR(rError);
    
    std::string rLibPath = result.stdOut;
+   if (rLibPath.length() == 0)
+       return Error(
+               boost::system::errc::invalid_argument,
+               "Path to R Library not found - set R Executable path in /etc/rstudio/rsession.conf",
+               ErrorLocation()
+               );
+
    core::system::setenv(
             &config.environment,
             "DYLD_INSERT_LIBRARIES",
@@ -354,7 +370,7 @@ Error SessionManager::launchAndTrackSession(
                                     configFilter,
                                     &pid);
    if (error)
-      return error;
+       return error;
 
    // track it for subsequent reaping
    processTracker_.addProcess(pid, boost::bind(onProcessExit,
